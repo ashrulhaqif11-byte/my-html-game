@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tembak Jawapan Betul</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #111424;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        #ui-container {
+            text-align: center;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 5px 0;
+            font-size: 1.8rem;
+            color: #4caf50;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.4);
+        }
+
+        #soalan-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            display: inline-block;
+            margin: 10px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            color: #fff;
+            min-height: 35px;
+        }
+
+        #stats {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .btn {
+            background: #0288d1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background: #01579b; }
+
+        canvas {
+            background: #161933;
+            border: 3px solid #303f9f;
+            box-shadow: 0 0 25px rgba(0,0,0,0.7);
+            cursor: crosshair;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1>🎯 Game Tembak Jawapan Betul 🔫</h1>
+        <div id="stats">
+            <div id="score-txt">Skor: 0</div>
+            <button class="btn" id="audio-btn" onclick="mulaMuzikDanGame()">Klik Sini Untuk Main / Muzik 🎵</button>
+            <div id="nyawa-txt">Nyawa: ❤️❤️❤️</div>
+        </div>
+        <div id="soalan-box">Sila klik butang biru di atas dahulu untuk mula!</div>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // BANK 20 SOALAN SEKOLAH RENDAH (Matematik, Sains, BM & Am)
+        const bankSoalan = [
+            { q: "1. Berapakah hasil bagi 5 + 3?", n1: "8", n2: "7", correct: 1 },
+            { q: "2. Antara berikut, yang manakah haiwan karnivor (makan daging)?", n1: "Lembu", n2: "Harimau", correct: 2 },
+            { q: "3. Apakah ibu negara bagi Malaysia?", n1: "Kuala Lumpur", n2: "Ipoh", correct: 1 },
+            { q: "4. Berapakah hasil bagi 10 - 4?", n1: "5", n2: "6", correct: 2 },
+            { q: "5. Manakah kata nama khas dalam ayat ini?", n1: "Si Comel", n2: "kucing", correct: 1 },
+            { q: "6. Planet manakah yang paling dekat dengan Matahari?", n1: "Utarid", n2: "Zuhal", correct: 1 },
+            { q: "7. Berapakah hasil bagi 3 x 4?", n1: "12", n2: "14", correct: 1 },
+            { q: "8. Bendera Malaysia mempunyai berapa jalur?", n1: "12 Jalur", n2: "14 Jalur", correct: 2 },
+            { q: "9. Ais yang cair berubah daripada keadaan pepejal kepada...", n1: "Cecair", n2: "Gas", correct: 1 },
+            { q: "10. Apakah lawan bagi perkataan 'BERSIH'?", n1: "Kotor", n2: "Wangi", correct: 1 },
+            { q: "11. Berapakah hasil bagi 20 ÷ 2?", n1: "10", n2: "5", correct: 1 },
+            { q: "12. Haiwan manakah yang bernafas menggunakan insang?", n1: "Ikan", n2: "Katak", correct: 1 },
+            { q: "13. Kita menggunakan deria apa untuk mendengar bunyi?", n1: "Mata", n2: "Telinga", correct: 2 },
+            { q: "14. Pilih ejaan yang betul:", n1: "Kereta", n2: "Kereat", correct: 1 },
+            { q: "15. Berapakah bilangan hari dalam satu minggu?", n1: "7 Hari", n2: "6 Hari", correct: 1 },
+            { q: "16. Apakah warna bagi lampu isyarat yang menyuruh kita BERHENTI?", n1: "Hijau", n2: "Merah", correct: 2 },
+            { q: "17. Matahari terbit dari sebelah mana?", n1: "Timur", n2: "Barat", correct: 1 },
+            { q: "18. Berapakah hasil bagi 50 + 50?", n1: "90", n2: "100", correct: 2 },
+            { q: "19. Alat muzik tradisional kaum Melayu yang dipukul ialah?", n1: "Kompang", n2: "Gitar", correct: 1 },
+            { q: "20. Berapakah bilangan rukun Islam?", n1: "5 Perkara", n2: "6 Perkara", correct: 1 }
+        ];
+
+        let skor = 0;
+        let nyawa = 3;
+        let indexSoalan = 0;
+        let gameTamat = false;
+        
+        let audioCtx = null;
+        let bgmInterval = null;
+        let gameBermula = false;
+
+        const soalanBox = document.getElementById('soalan-box');
+        const scoreTxt = document.getElementById('score-txt');
+        const nyawaTxt = document.getElementById('nyawa-txt');
+        const audioBtn = document.getElementById('audio-btn');
+
+        // Konfigurasi Pistol
+        const gun = { x: canvas.width / 2 - 20, y: canvas.height - 30, width: 40, height: 20 };
+        let bullets = [];
+        let targets = [];
+
+        // --- SISTEM AUDIO SINTEZIS ---
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playLaserSFX() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.12);
+            
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        }
+
+        function playBGM() {
+            initAudio();
+            let nota = [261.63, 293.66, 329.63, 349.23, 392.00, 349.23, 329.63, 293.66];
+            let i = 0;
+
+            bgmInterval = setInterval(() => {
+                if (gameTamat || !gameBermula) return;
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(nota[i], audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.25);
+                
+                i = (i + 1) % nota.length;
+            }, 300);
+        }
+
+        function mulaMuzikDanGame() {
+            initAudio();
+            if (!gameBermula) {
+                gameBermula = true;
+                audioBtn.style.display = "none";
+                playBGM();
+                restartGame();
+            }
+        }
+
+        // Sediakan Soalan Bersama 2 Sasaran Bergerak
+        function setSoalan() {
+            if (indexSoalan >= bankSoalan.length) {
+                // Semua 20 soalan selesai dijawab, tamatkan game untuk semak markah
+                endGame();
+                return;
+            }
+
+            const soalanSemasa = bankSoalan[indexSoalan];
+            soalanBox.innerText = soalanSemasa.q;
+
+            // Kelajuan bertambah sedikit mengikut nombor soalan
+            const tumpuanKelajuan = 2 + (indexSoalan * 0.15);
+
+            targets = [
+                {
+                    x: 180,
+                    y: 100,
+                    radius: 52, // Bulatan dibesarkan sikit supaya teks panjang muat
+                    text: soalanSemasa.n1,
+                    id: 1,
+                    speedX: tumpuanKelajuan + Math.random()
+                },
+                {
+                    x: 620,
+                    y: 160,
+                    radius: 52,
+                    text: soalanSemasa.n2,
+                    id: 2,
+                    speedX: -(tumpuanKelajuan + Math.random())
+                }
+            ];
+        }
+
+        // Kawalan Pergerakan Pistol Menggunakan Mouse
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameBermula || gameTamat) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            gun.x = mouseX - gun.width / 2;
+
+            if (gun.x < 0) gun.x = 0;
+            if (gun.x > canvas.width - gun.width) gun.x = canvas.width - gun.width;
+        });
+
+        // Klik Kiri untuk Tembak
+        canvas.addEventListener('click', () => {
+            if (!gameBermula) return;
+            if (gameTamat) {
+                restartGame();
+                return;
+            }
+
+            playLaserSFX();
+            bullets.push({
+                x: gun.x + gun.width / 2,
+                y: gun.y,
+                radius: 4,
+                speed: 9
+            });
+        });
+
+        // Update Kedudukan & Logik Pelanggaran Peluru
+        function update() {
+            if (!gameBermula || gameTamat) return;
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= bullets[i].speed;
+                if (bullets[i].y < 0) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            targets.forEach(t => {
+                t.x += t.speedX;
+                if (t.x - t.radius < 0 || t.x + t.radius > canvas.width) {
+                    t.speedX = -t.speedX;
+                }
+            });
+
+            for (let bIdx = bullets.length - 1; bIdx >= 0; bIdx--) {
+                const b = bullets[bIdx];
+                for (let tIdx = 0; tIdx < targets.length; tIdx++) {
+                    const t = targets[tIdx];
+                    let jarak = Math.hypot(b.x - t.x, b.y - t.y);
+                    
+                    if (jarak < b.radius + t.radius) {
+                        bullets.splice(bIdx, 1);
+                        semakJawapan(t.id);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Semak Jawapan Betul/Salah (1 Soalan = 10 Markah)
+        function semakJawapan(targetId) {
+            const soalanSemasa = bankSoalan[indexSoalan];
+            if (targetId === soalanSemasa.correct) {
+                skor += 10;
+                scoreTxt.innerText = "Skor: " + skor;
+            } else {
+                if (nyawa > 0) nyawa--;
+                kemaskiniNyawaDisplay();
+            }
+            indexSoalan++;
+            setSoalan();
+        }
+
+        function kemaskiniNyawaDisplay() {
+            let hati = "";
+            for (let i = 0; i < 3; i++) {
+                hati += (i < nyawa) ? "❤️" : "🖤";
+            }
+            nyawaTxt.innerText = "Nyawa: " + hati;
+        }
+
+        // Lukis Grafik di Canvas
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameBermula) {
+                ctx.fillStyle = "#8888ff";
+                ctx.font = "bold 22px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("Sila klik butang di atas untuk aktifkan game!", canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            if (gameTamat) {
+                // Semakan Markah Akhir (Atas 70 Berjaya, Bawah 70 Gagal)
+                if (skor >= 70) {
+                    ctx.fillStyle = "#4caf50"; // Hijau untuk berjaya
+                    ctx.font = "bold 34px Arial";
+                    ctx.textAlign = "center";
+                    ctx.fillText("TAHNIAH ANDA BERJAYA 🎉🏆", canvas.width / 2, canvas.height / 2 - 20);
+                } else {
+                    ctx.fillStyle = "#ff5722"; // Merah untuk gagal
+                    ctx.font = "bold 34px Arial";
+                    ctx.textAlign = "center";
+                    ctx.fillText("MAAF SILA CUBA LAGI 💥", canvas.width / 2, canvas.height / 2 - 20);
+                }
+                
+                ctx.fillStyle = "#fff";
+                ctx.font = "22px Arial";
+                ctx.fillText("Jumlah Skor Anda: " + skor + " / 200", canvas.width / 2, canvas.height / 2 + 25);
+                
+                ctx.fillStyle = "#0288d1";
+                ctx.font = "18px Arial";
+                ctx.fillText("Klik di dalam skrin canvas untuk main semula 🎮", canvas.width / 2, canvas.height / 2 + 80);
+                return;
+            }
+
+            // Lukis 2 Sasaran Bulatan
+            targets.forEach(t => {
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+                ctx.fillStyle = t.id === 1 ? "#e91e63" : "#9c27b0";
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = "#ffffff";
+                ctx.stroke();
+                ctx.closePath();
+
+                // Papar Teks Jawapan
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 14px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(t.text, t.x, t.y);
+            });
+
+            // Lukis Peluru
+            bullets.forEach(b => {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = "#ffff00";
+                ctx.fill();
+                ctx.closePath();
+            });
+
+            // Lukis Pistol Pemain
+            ctx.fillStyle = "#4caf50";
+            ctx.fillRect(gun.x, gun.y, gun.width, gun.height);
+            ctx.fillRect(gun.x + gun.width / 2 - 5, gun.y - 12, 10, 12);
+        }
+
+        function endGame() {
+            gameTamat = true;
+            soalanBox.innerText = "Tamat! Sila semak keputusan anda di bawah.";
+        }
+
+        function restartGame() {
+            skor = 0;
+            nyawa = 3;
+            indexSoalan = 0;
+            gameTamat = false;
+            scoreTxt.innerText = "Skor: 0";
+            kemaskiniNyawaDisplay();
+            setSoalan();
+        }
+
+        // Game Loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
